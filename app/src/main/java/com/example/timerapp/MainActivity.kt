@@ -5,6 +5,7 @@ import android.widget.ImageButton
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,51 +38,31 @@ import com.example.timerapp.ui.theme.TimerAppTheme
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Date
+import androidx.compose.runtime.*
 
 class MainActivity : ComponentActivity() {
+    private val timerViewModel: TimerViewModel by viewModels()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            TimerApp()
+            TimerApp(timerViewModel)
         }
     }
 }
 
 @Composable
-fun TimerApp(modifier: Modifier = Modifier) {
+fun TimerApp(timerViewModel: TimerViewModel, modifier: Modifier = Modifier) {
     TimerAppTheme {
-        TimerScreen()
+        TimerScreen(timerViewModel)
     }
 }
 
 @Composable
-fun TimerScreen(modifier: Modifier = Modifier) {
-    val initialTime = 30L
-    var remainingtime: Long by remember {
-        mutableLongStateOf(initialTime)
-    }
-
-    var isRunning by remember {
-        mutableStateOf(false)
-    }
-
-    var progress by remember {
-        mutableStateOf(0f)
-    }
-
-    if(isRunning) {
-        LaunchedEffect(key1 = remainingtime) {
-            while (remainingtime > 0) {
-                delay(1000)
-                remainingtime--
-                progress = remainingtime.toFloat() / initialTime
-            }
-            isRunning = false
-            progress = 0f
-            remainingtime = initialTime
-        }
-    }
+fun TimerScreen(viewModel: TimerViewModel, modifier: Modifier = Modifier) {
+    val remainingTime by viewModel.remainingTime.collectAsState()
+    val progress by viewModel.progress.collectAsState()
+    val isRunning by viewModel.isRunning.collectAsState()
 
     Column(
         modifier = modifier.fillMaxSize(),
@@ -90,38 +71,32 @@ fun TimerScreen(modifier: Modifier = Modifier) {
     ) {
         Box(contentAlignment = Alignment.Center) {
             CircularProgressIndicator(
-                progress = {progress},
+                progress = { progress },
                 color = Color.Yellow,
                 trackColor = Color.Gray,
                 strokeWidth = 10.dp,
                 modifier = Modifier.size(200.dp)
             )
-            Text(text = formatTime(remainingtime), style = MaterialTheme.typography.displayLarge)
+            Text(text = formatTime(remainingTime), style = MaterialTheme.typography.displayLarge)
         }
         Spacer(modifier = Modifier.height(20.dp))
         Row {
-           IconButton(onClick = {
-               isRunning = !isRunning
-           }) {
-               val icon = if (isRunning) R.drawable.icons_pause else R.drawable.icons_play
-               Icon(
-                   painter = painterResource(id = icon),
-                   contentDescription = if (isRunning) "pause" else "play",
-                   modifier = modifier.size(50.dp)
-               )
-           }
+            IconButton(onClick = { viewModel.toggleTimer() }) {
+                val icon = if (isRunning) R.drawable.icons_pause else R.drawable.icons_play
+                Icon(
+                    painter = painterResource(id = icon),
+                    contentDescription = if (isRunning) "pause" else "play",
+                    modifier = modifier.size(50.dp)
+                )
+            }
 
-           IconButton(onClick = {
-               isRunning = false
-               progress = 0f
-               remainingtime = initialTime
-           }) {
-               Icon(
-                   painter = painterResource(id = R.drawable.icons_reload),
-                   contentDescription = "Refresh",
-                   modifier = modifier.size(50.dp)
-               )
-           }
+            IconButton(onClick = { viewModel.resetTimer() }) {
+                Icon(
+                    painter = painterResource(id = R.drawable.icons_reload),
+                    contentDescription = "Refresh",
+                    modifier = modifier.size(50.dp)
+                )
+            }
         }
     }
 }
@@ -133,5 +108,5 @@ fun formatTime(time: Long) : String {
 @Preview(showBackground = true)
 @Composable
 fun GreetingPreview() {
-    TimerApp()
+//    TimerApp(timerViewModel = timerViewModel)
 }
